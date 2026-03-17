@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Omnichord</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #2a1f14;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── Instrument shell ── */
+    .omnichord {
+      position: relative;
+      width: 900px;
+      height: 460px;
+    }
+
+    /* SVG background shape */
+    .shell-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 12px 40px rgba(0,0,0,0.8));
+    }
+
+    /* Inner content sits on top of the SVG */
+    .inner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      padding: 20px 24px 20px 20px;
+      gap: 14px;
+    }
+
+    /* ── Left control panel ── */
+    .left-panel {
+      width: 148px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .section-box {
+      background: linear-gradient(160deg, #d8d0c5 0%, #bfb8ad 100%);
+      border-radius: 6px;
+      border: 1px solid #a09890;
+      padding: 8px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .section-label {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #2a2520;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      border-bottom: 1px solid rgba(0,0,0,0.15);
+      padding-bottom: 3px;
+    }
+
+    /* Master Control */
+    .master-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    .power-btn {
+      width: 22px;
+      height: 22px;
+      background: linear-gradient(180deg, #e03030 0%, #a01010 100%);
+      border-radius: 3px;
+      border: 1px solid #700;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,150,150,0.4);
+      transition: transform 80ms, box-shadow 80ms;
+      position: relative;
+    }
+    .power-btn.on::after {
+      content: '';
+      position: absolute;
+      top: -5px; left: 50%; transform: translateX(-50%);
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #f00;
+      box-shadow: 0 0 6px 2px #f00;
+    }
+    .power-btn:active { transform: translateY(1px); }
+
+    .knob-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .knob {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 35%, #888 0%, #444 60%, #222 100%);
+      border: 2px solid #333;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2);
+      cursor: pointer;
+      position: relative;
+    }
+    .knob::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 50%; transform: translateX(-50%);
+      width: 2px; height: 7px;
+      background: #eee;
+      border-radius: 1px;
+    }
+    .knob-label {
+      font-size: 6px;
+      color: #444;
+      text-transform: lowercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Rhythm buttons */
+    .rhythm-btns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      margin-bottom: 6px;
+    }
+    .rhythm-btn {
+      height: 14px;
+      background: linear-gradient(180deg, #c8c0b5 0%, #a8a098 100%);
+      border-radius: 2px;
+      border: 1px solid #887870;
+      cursor: pointer;
+      font-size: 5.5px;
+      color: #2a2520;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      transition: background 80ms;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.35);
+    }
+    .rhythm-btn:hover { background: linear-gradient(180deg, #d8d0c5 0%, #b8b0a8 100%); }
+    .rhythm-btn.active {
+      background: linear-gradient(180deg, #8090c0 0%, #506090 100%);
+      color: #fff;
+      border-color: #304070;
+    }
+
+    .rhythm-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+    }
+
+    /* Chord memory */
+    .mem-btns {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .mem-btn {
+      width: 22px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid #807870;
+      cursor: pointer;
+      font-size: 6px;
+      color: #2a2520;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-transform: uppercase;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.35);
+    }
+    .mem-btn.red {
+      background: linear-gradient(180deg, #e03030 0%, #a01010 100%);
+      color: #fff;
+      border-color: #700;
+    }
+    .mem-btn.gray {
+      background: linear-gradient(180deg, #c8c0b5 0%, #a8a098 100%);
+    }
+
+    /* ── Center: Logo + Chord grid ── */
+    .center-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 0 4px;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.01em;
+      color: #1a1a2e;
+      font-style: italic;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+      line-height: 1;
+    }
+    .logo span {
+      color: #1a1a2e;
+      font-weight: 900;
+    }
+    .logo-sub {
+      font-size: 7px;
+      letter-spacing: 0.25em;
+      color: #3a3a5a;
+      text-align: center;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+    .logo-suzuki {
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      color: #3a3a5a;
+      font-weight: 700;
+      text-align: center;
+      margin-top: 2px;
+    }
+
+    /* Column headers */
+    .chord-col-headers {
+      display: grid;
+      grid-template-columns: 44px repeat(12, 1fr);
+      gap: 3px;
+      padding: 0 2px;
+    }
+    .col-header {
+      font-size: 8px;
+      font-weight: 700;
+      color: #2a2520;
+      text-align: center;
+      letter-spacing: 0.02em;
+    }
+
+    /* Chord rows */
+    .chord-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .chord-row {
+      display: grid;
+      grid-template-columns: 44px repeat(12, 1fr);
+      gap: 3px;
+      align-items: center;
+    }
+
+    .row-label {
+      font-size: 8px;
+      font-weight: 700;
+      color: #2a2520;
+      text-align: right;
+      padding-right: 6px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* Chord buttons */
+    .chord-btn {
+      height: 34px;
+      border-radius: 4px;
+      border: 1px solid #888;
+      cursor: pointer;
+      position: relative;
+      transition: background 60ms, transform 60ms, box-shadow 60ms;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    /* Major row – light */
+    .chord-row.major .chord-btn {
+      background: linear-gradient(180deg, #e8e4e0 0%, #ccc8c4 100%);
+      box-shadow: 0 3px 0 #999, 0 4px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    /* Minor row – medium */
+    .chord-row.minor .chord-btn {
+      background: linear-gradient(180deg, #d0ccc8 0%, #b4b0ac 100%);
+      box-shadow: 0 3px 0 #888, 0 4px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.5);
+    }
+    /* 7th row – darker */
+    .chord-row.seventh .chord-btn {
+      background: linear-gradient(180deg, #b8b4b0 0%, #9c9894 100%);
+      box-shadow: 0 3px 0 #777, 0 4px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    .chord-btn:hover {
+      filter: brightness(1.08);
+    }
+
+    .chord-btn.pressed, .chord-btn.active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #777, 0 1px 3px rgba(0,0,0,0.2), inset 0 2px 4px rgba(0,0,0,0.15) !important;
+      filter: brightness(0.88);
+    }
+
+    .chord-btn.active {
+      background: linear-gradient(180deg, #7090d0 0%, #4060a0 100%) !important;
+      box-shadow: 0 1px 0 #2040a0, inset 0 2px 4px rgba(0,0,50,0.3) !important;
+    }
+    .chord-btn.active .btn-name { color: #fff; }
+    .chord-btn.active .btn-key { color: rgba(255,255,255,0.7); }
+
+    .btn-name {
+      font-size: 8px;
+      font-weight: 700;
+      color: #2a2520;
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+    .btn-key {
+      font-size: 6px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    /* ── Right harp panel ── */
+    .harp-panel {
+      width: 160px;
+      flex-shrink: 0;
+      display: flex;
+      gap: 6px;
+    }
+
+    .harp-strip {
+      flex: 1;
+      background: linear-gradient(160deg, #d4cfc8 0%, #b8b2ac 100%);
+      border-radius: 6px;
+      border: 1px solid #a09890;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.3);
+      position: relative;
+      overflow: hidden;
+      cursor: crosshair;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 0;
+    }
+
+    .harp-string {
+      width: 100%;
+      height: 2px;
+      position: relative;
+      cursor: pointer;
+      transition: opacity 100ms;
+    }
+    .harp-string::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, #b0a898 20%, #c8c0b4 50%, #b0a898 80%, transparent 100%);
+    }
+    .harp-string.plucked::before {
+      background: linear-gradient(90deg, transparent 0%, #f0d090 20%, #ffe8a0 50%, #f0d090 80%, transparent 100%);
+      box-shadow: 0 0 6px 2px rgba(255, 210, 100, 0.6);
+    }
+
+    .harp-label {
+      position: absolute;
+      bottom: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 6px;
+      font-weight: 700;
+      color: #555;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* Speaker grille */
+    .speaker {
+      width: 60px;
+      background: linear-gradient(160deg, #c8c4be 0%, #aca8a2 100%);
+      border-radius: 6px;
+      border: 1px solid #a09890;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 4px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding: 14px 8px;
+      justify-content: center;
+    }
+    .grille-line {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #888 20%, #888 80%, transparent);
+      border-radius: 1px;
+    }
+
+    /* ── HUD / info bar ── */
+    .hud {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      color: rgba(255,255,255,0.85);
+      font-size: 12px;
+      padding: 6px 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.12);
+      letter-spacing: 0.04em;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .hud .chord-name {
+      font-weight: 700;
+      color: #8ab4f8;
+    }
+
+    /* Key hint overlay on buttons */
+    .chord-btn .btn-key {
+      font-size: 6.5px;
+      color: rgba(60,60,60,0.6);
+    }
+
+    /* Active glow ring */
+    .chord-btn.active::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 5px;
+      border: 2px solid rgba(100,150,255,0.8);
+      pointer-events: none;
+    }
+
+    /* Rhythm active pulse */
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(100,150,255,0.7); }
+      70%  { box-shadow: 0 0 0 6px rgba(100,150,255,0); }
+      100% { box-shadow: 0 0 0 0 rgba(100,150,255,0); }
+    }
+    .rhythm-btn.beat { animation: pulse 200ms ease-out; }
+
+    /* Harp hover glow */
+    .harp-string:hover::before {
+      background: linear-gradient(90deg, transparent 0%, #d4c090 20%, #f0d880 50%, #d4c090 80%, transparent 100%);
+    }
+  </style>
+</head>
+<body>
+
+<div class="omnichord" id="omnichord">
+  <!-- SVG body shape: rounded teardrop pointing right -->
+  <svg class="shell-svg" viewBox="0 0 900 460" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bodyGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%"   stop-color="#e8e2d8"/>
+        <stop offset="100%" stop-color="#c8c0b4"/>
+      </linearGradient>
+      <linearGradient id="bodyGrad2" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#ddd8d0" stop-opacity="1"/>
+        <stop offset="100%" stop-color="#c4bdb4" stop-opacity="1"/>
+      </linearGradient>
+      <filter id="inset">
+        <feOffset dx="0" dy="2"/>
+        <feGaussianBlur stdDeviation="2" result="offset-blur"/>
+        <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"/>
+        <feFlood flood-color="black" flood-opacity="0.25" result="color"/>
+        <feComposite operator="in" in="color" in2="inverse" result="shadow"/>
+        <feComposite operator="over" in="shadow" in2="SourceGraphic"/>
+      </filter>
+    </defs>
+    <!-- Main teardrop body -->
+    <path d="
+      M 60 30
+      Q 10 30 10 80
+      L 10 380
+      Q 10 430 60 430
+      L 650 430
+      Q 760 430 830 380
+      Q 900 330 895 230
+      Q 890 130 820 80
+      Q 760 30 650 30
+      Z
+    " fill="url(#bodyGrad2)" stroke="#a09888" stroke-width="2"/>
+    <!-- Top highlight -->
+    <path d="
+      M 60 32
+      Q 12 32 12 80
+      L 12 160
+      Q 200 50 650 32
+      Z
+    " fill="rgba(255,255,255,0.18)"/>
+    <!-- Left panel separator line -->
+    <line x1="168" y1="30" x2="168" y2="430" stroke="#a09888" stroke-width="1.5" opacity="0.7"/>
+    <!-- Right harp separator -->
+    <line x1="730" y1="30" x2="730" y2="430" stroke="#a09888" stroke-width="1.5" opacity="0.7"/>
+  </svg>
+
+  <div class="inner">
+    <!-- ── LEFT PANEL ── -->
+    <div class="left-panel">
+      <!-- Master Control -->
+      <div class="section-box">
+        <div class="section-label">Master Control</div>
+        <div class="master-ctrl">
+          <div>
+            <div class="power-btn on" id="powerBtn" title="Power"></div>
+            <div style="font-size:6px;color:#444;text-align:center;margin-top:3px;">power</div>
+          </div>
+          <div class="knob-wrap">
+            <div class="knob" title="Volume" style="transform: rotate(30deg)"></div>
+            <div class="knob-label">volume</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SonicStrings -->
+      <div class="section-box">
+        <div class="section-label" style="font-size:6px;">SonicStrings · Keyboard Chords</div>
+        <div style="display:flex;gap:8px;align-items:center;padding-top:2px;">
+          <div class="knob-wrap">
+            <div class="knob" style="width:20px;height:20px;transform:rotate(-20deg)"></div>
+            <div class="knob-label">voice</div>
+          </div>
+          <div class="knob-wrap">
+            <div class="knob" style="width:20px;height:20px;transform:rotate(10deg)"></div>
+            <div class="knob-label">sustain</div>
+          </div>
+          <div class="knob-wrap">
+            <div class="knob" style="width:20px;height:20px;transform:rotate(25deg)"></div>
+            <div class="knob-label">volume</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rhythm -->
+      <div class="section-box" style="flex:1">
+        <div class="section-label">Rhythm</div>
+        <div class="rhythm-btns" id="rhythmBtns">
+          <div class="rhythm-btn" data-rhythm="rock1">rock 1</div>
+          <div class="rhythm-btn" data-rhythm="rock2">rock 2</div>
+          <div class="rhythm-btn" data-rhythm="disco">disco</div>
+          <div class="rhythm-btn" data-rhythm="latin">latin</div>
+          <div class="rhythm-btn" data-rhythm="country">country</div>
+          <div class="rhythm-btn" data-rhythm="march">march</div>
+          <div class="rhythm-btn" data-rhythm="tango">tango</div>
+          <div class="rhythm-btn" data-rhythm="blues">blues</div>
+          <div class="rhythm-btn" data-rhythm="swing">swing</div>
+          <div class="rhythm-btn active" data-rhythm="waltz">waltz</div>
+          <div class="rhythm-btn" data-rhythm="chord">chord only</div>
+        </div>
+        <div class="rhythm-controls">
+          <div class="knob-wrap">
+            <div class="knob" style="width:22px;height:22px;transform:rotate(20deg)"></div>
+            <div class="knob-label">tempo</div>
+          </div>
+          <div class="knob-wrap">
+            <div class="knob" style="width:22px;height:22px;transform:rotate(30deg)"></div>
+            <div class="knob-label">volume</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chord Memory -->
+      <div class="section-box">
+        <div class="section-label">Chord Memory</div>
+        <div class="mem-btns">
+          <div class="mem-btn red">●</div>
+          <div class="mem-btn gray">play</div>
+          <div class="mem-btn gray">rep</div>
+          <div class="mem-btn gray">rec</div>
+          <div class="mem-btn gray">del</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CENTER PANEL ── -->
+    <div class="center-panel">
+      <!-- Logo -->
+      <div class="logo-area">
+        <div>
+          <div class="logo">&#x2040;OMNI<span>&#x2758;</span>CHORD</div>
+          <div class="logo-sub">— System Two —</div>
+          <div class="logo-suzuki">⚡ S SUZUKI</div>
+        </div>
+      </div>
+
+      <!-- Column headers -->
+      <div class="chord-col-headers">
+        <div></div>
+        <div class="col-header">D♭</div>
+        <div class="col-header">A♭</div>
+        <div class="col-header">E♭</div>
+        <div class="col-header">B♭</div>
+        <div class="col-header">F</div>
+        <div class="col-header">C</div>
+        <div class="col-header">G</div>
+        <div class="col-header">D</div>
+        <div class="col-header">A</div>
+        <div class="col-header">E</div>
+        <div class="col-header">B</div>
+        <div class="col-header">F♯</div>
+      </div>
+
+      <!-- Chord grid -->
+      <div class="chord-grid" id="chordGrid">
+        <!-- Rows built by JS -->
+      </div>
+    </div>
+
+    <!-- ── HARP PANEL ── -->
+    <div class="harp-panel">
+      <!-- Touch harp strings -->
+      <div class="harp-strip" id="harpStrip">
+        <div class="harp-label">Strum · ↑↓ arrows</div>
+      </div>
+      <!-- Speaker grille -->
+      <div class="speaker" id="speakerGrille"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div class="hud" id="hud">
+  Select a chord (row keys: <strong>A</strong>=Major · <strong>S</strong>=Minor · <strong>D</strong>=7th) &nbsp;|&nbsp;
+  Strum: <strong>Space</strong> / <strong>↑↓</strong>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  Chord definitions
+// ─────────────────────────────────────────────
+const COLS = [
+  { name: 'D♭', key: '1' },
+  { name: 'A♭', key: '2' },
+  { name: 'E♭', key: '3' },
+  { name: 'B♭', key: '4' },
+  { name: 'F',  key: '5' },
+  { name: 'C',  key: '6' },
+  { name: 'G',  key: '7' },
+  { name: 'D',  key: '8' },
+  { name: 'A',  key: '9' },
+  { name: 'E',  key: '0' },
+  { name: 'B',  key: '-' },
+  { name: 'F♯', key: '=' },
+];
+
+const ROWS = [
+  { label: 'Major', type: 'major',   key: 'a', cssClass: 'major'   },
+  { label: 'Minor', type: 'minor',   key: 's', cssClass: 'minor'   },
+  { label: '7th',   type: 'seventh', key: 'd', cssClass: 'seventh' },
+];
+
+// Note frequencies (MIDI-ish, A4=440)
+const NOTE_FREQ = {
+  'C': 261.63, 'C#': 277.18, 'D': 293.66, 'D#': 311.13,
+  'E': 329.63, 'F': 349.23, 'F#': 369.99, 'G': 392.00,
+  'G#': 415.30, 'A': 440.00, 'A#': 466.16, 'B': 493.88,
+};
+
+// Map display name → semitone index (C=0)
+const ROOT_SEMI = {
+  'D♭': 1, 'A♭': 8, 'E♭': 3, 'B♭': 10,
+  'F': 5, 'C': 0, 'G': 7, 'D': 2,
+  'A': 9, 'E': 4, 'B': 11, 'F♯': 6,
+};
+
+function semiToFreq(semi, octave=4) {
+  // C4 = 261.63
+  return 261.63 * Math.pow(2, (semi + (octave-4)*12) / 12);
+}
+
+function getChordNotes(rootName, type) {
+  const root = ROOT_SEMI[rootName];
+  let intervals;
+  if (type === 'major')   intervals = [0, 4, 7];
+  else if (type === 'minor') intervals = [0, 3, 7];
+  else                    intervals = [0, 4, 7, 10]; // dom7
+  return intervals.map(i => {
+    const semi = (root + i) % 12;
+    const oct  = 4 + Math.floor((root + i) / 12);
+    return semiToFreq(semi, oct);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Web Audio setup
+// ─────────────────────────────────────────────
+let audioCtx = null;
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+// Held oscillators for sustained chord
+let heldNodes = [];
+
+function stopHeld() {
+  heldNodes.forEach(({ osc, gain }) => {
+    try {
+      gain.gain.setTargetAtTime(0, getCtx().currentTime, 0.08);
+      osc.stop(getCtx().currentTime + 0.3);
+    } catch(e) {}
+  });
+  heldNodes = [];
+}
+
+function playChord(freqs, sustained=true) {
+  stopHeld();
+  const ctx = getCtx();
+  freqs.forEach((freq, i) => {
+    // Chord tones: slight detuning per voice for warmth
+    [-1, 0, 1].forEach(detune => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      osc.detune.value = detune * 4 + i * 2;
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.12 / freqs.length, ctx.currentTime + 0.02);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      if (sustained) {
+        heldNodes.push({ osc, gain });
+      } else {
+        gain.gain.setTargetAtTime(0, ctx.currentTime + 0.08, 0.15);
+        osc.stop(ctx.currentTime + 0.8);
+      }
+    });
+  });
+}
+
+// Strum: arpeggiate chord tones across harp strings
+function strum(freqs, direction='down') {
+  stopHeld();
+  const ctx = getCtx();
+  const ordered = direction === 'down' ? [...freqs] : [...freqs].reverse();
+  // Spread across more octaves for harp richness
+  const expanded = [];
+  ordered.forEach(f => {
+    expanded.push(f / 2, f, f * 2);
+  });
+  // Add bass note
+  const bass = ordered[0] / 4;
+  const allFreqs = [bass, ...expanded];
+
+  allFreqs.forEach((freq, i) => {
+    const delay = i * 0.028;
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = i < 2 ? 'sawtooth' : 'triangle';
+    osc.frequency.value = freq;
+    osc.detune.value = (Math.random() - 0.5) * 6;
+    gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+    gain.gain.linearRampToValueAtTime(0.09, ctx.currentTime + delay + 0.015);
+    gain.gain.setTargetAtTime(0, ctx.currentTime + delay + 0.1, 0.25);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + 1.5);
+    heldNodes.push({ osc, gain });
+  });
+
+  // Animate harp strings
+  flashHarpStrings(direction);
+}
+
+// ─────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────
+let activeRow  = null; // 'major' | 'minor' | 'seventh'
+let activeCol  = null; // index 0–11
+let harpStrings = [];
+
+function getActiveFreqs() {
+  if (activeRow == null || activeCol == null) return null;
+  return getChordNotes(COLS[activeCol].name, activeRow);
+}
+
+function getChordDisplayName() {
+  if (activeRow == null || activeCol == null) return null;
+  const root = COLS[activeCol].name;
+  if (activeRow === 'major')   return `${root} Major`;
+  if (activeRow === 'minor')   return `${root} Minor`;
+  if (activeRow === 'seventh') return `${root}7`;
+  return root;
+}
+
+function updateHUD() {
+  const hud = document.getElementById('hud');
+  const name = getChordDisplayName();
+  if (name) {
+    hud.innerHTML = `Playing: <span class="chord-name">${name}</span> &nbsp;|&nbsp; Strum: <strong>Space</strong> / <strong>↑↓</strong> &nbsp;|&nbsp; Hold chord &amp; strum repeatedly!`;
+  } else {
+    hud.innerHTML = `Select a chord &nbsp;|&nbsp; Row: <strong>A</strong>=Major · <strong>S</strong>=Minor · <strong>D</strong>=7th &nbsp;|&nbsp; Column: <strong>1–=</strong> keys`;
+  }
+}
+
+function setActiveButton(row, col) {
+  // Clear all
+  document.querySelectorAll('.chord-btn').forEach(b => b.classList.remove('active'));
+  activeRow = row;
+  activeCol = col;
+  if (row != null && col != null) {
+    const btn = document.querySelector(`.chord-btn[data-row="${row}"][data-col="${col}"]`);
+    if (btn) btn.classList.add('active');
+    const freqs = getChordFreqs(row, col);
+    playChord(freqs, true);
+  } else {
+    stopHeld();
+  }
+  updateHUD();
+}
+
+function getChordFreqs(row, col) {
+  return getChordNotes(COLS[col].name, row);
+}
+
+// ─────────────────────────────────────────────
+//  Build chord grid
+// ─────────────────────────────────────────────
+function buildGrid() {
+  const grid = document.getElementById('chordGrid');
+  ROWS.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = `chord-row ${row.cssClass}`;
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'row-label';
+    labelEl.textContent = row.label;
+    rowEl.appendChild(labelEl);
+
+    COLS.forEach((col, ci) => {
+      const btn = document.createElement('div');
+      btn.className = 'chord-btn';
+      btn.dataset.row = row.type;
+      btn.dataset.col = ci;
+      btn.tabIndex = 0;
+      btn.title = `${col.name} ${row.label}`;
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'btn-name';
+      nameEl.textContent = col.name;
+
+      const keyEl = document.createElement('div');
+      keyEl.className = 'btn-key';
+      keyEl.textContent = `${row.key}+${col.key}`;
+
+      btn.appendChild(nameEl);
+      btn.appendChild(keyEl);
+
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const wasActive = (activeRow === row.type && activeCol === ci);
+        if (wasActive) {
+          setActiveButton(null, null);
+        } else {
+          setActiveButton(row.type, ci);
+        }
+      });
+
+      rowEl.appendChild(btn);
+    });
+
+    grid.appendChild(rowEl);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Build harp strings
+// ─────────────────────────────────────────────
+function buildHarp() {
+  const strip = document.getElementById('harpStrip');
+  const NUM_STRINGS = 20;
+  harpStrings = [];
+  for (let i = 0; i < NUM_STRINGS; i++) {
+    const s = document.createElement('div');
+    s.className = 'harp-string';
+    s.dataset.index = i;
+
+    // Mouse over while mouse held = strum individual string
+    s.addEventListener('mouseenter', (e) => {
+      if (e.buttons === 1 && getActiveFreqs()) {
+        pluckString(i);
+      }
+    });
+    s.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      if (getActiveFreqs()) pluckString(i);
+    });
+
+    strip.appendChild(s);
+    harpStrings.push(s);
+  }
+
+  // Build speaker grille lines
+  const speaker = document.getElementById('speakerGrille');
+  for (let i = 0; i < 22; i++) {
+    const line = document.createElement('div');
+    line.className = 'grille-line';
+    speaker.appendChild(line);
+  }
+}
+
+function pluckString(index) {
+  const ctx = getCtx();
+  const freqs = getActiveFreqs();
+  if (!freqs) return;
+
+  // Map string index to a note in the chord (cycle through)
+  // Spread over multiple octaves
+  const octaveShift = Math.floor(index / freqs.length) - 1;
+  const noteIdx = index % freqs.length;
+  const freq = freqs[noteIdx] * Math.pow(2, octaveShift);
+
+  const osc  = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.value = Math.max(80, Math.min(freq, 4000));
+  osc.detune.value = (Math.random() - 0.5) * 8;
+  gain.gain.setValueAtTime(0.15, ctx.currentTime);
+  gain.gain.setTargetAtTime(0, ctx.currentTime + 0.05, 0.18);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + 1.5);
+
+  // Flash the string
+  const el = harpStrings[index];
+  if (el) {
+    el.classList.add('plucked');
+    setTimeout(() => el.classList.remove('plucked'), 200);
+  }
+}
+
+function flashHarpStrings(direction='down') {
+  const order = direction === 'down'
+    ? [...harpStrings.keys()]
+    : [...harpStrings.keys()].reverse();
+
+  order.forEach((i, seq) => {
+    setTimeout(() => {
+      if (harpStrings[i]) {
+        harpStrings[i].classList.add('plucked');
+        setTimeout(() => harpStrings[i].classList.remove('plucked'), 180);
+      }
+    }, seq * 28);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Keyboard handling
+// ─────────────────────────────────────────────
+const ROW_KEYS = { 'a': 'major', 's': 'minor', 'd': 'seventh' };
+const COL_KEYS = { '1':0, '2':1, '3':2, '4':3, '5':4, '6':5, '7':6, '8':7, '9':8, '0':9, '-':10, '=':11 };
+
+let pendingRow = null; // row held down
+let pendingCol = null;
+
+// Two-key combo: hold row key then press col key
+// OR: press row key alone to cycle, col key alone to change column keeping row
+
+document.addEventListener('keydown', (e) => {
+  if (e.repeat) return;
+  const k = e.key.toLowerCase();
+
+  // Row key
+  if (ROW_KEYS[k]) {
+    pendingRow = ROW_KEYS[k];
+    return;
+  }
+
+  // Col key
+  if (COL_KEYS[k] !== undefined) {
+    pendingCol = COL_KEYS[k];
+    const row = pendingRow ?? activeRow;
+    const col = pendingCol;
+    if (row != null) {
+      const wasActive = (activeRow === row && activeCol === col);
+      if (wasActive) {
+        setActiveButton(null, null);
+      } else {
+        setActiveButton(row, col);
+      }
+    }
+    return;
+  }
+
+  // Strum keys
+  if (k === ' ' || k === 'arrowdown') {
+    e.preventDefault();
+    if (getActiveFreqs()) strum(getActiveFreqs(), 'down');
+    return;
+  }
+  if (k === 'arrowup') {
+    e.preventDefault();
+    if (getActiveFreqs()) strum(getActiveFreqs(), 'up');
+    return;
+  }
+
+  // Escape = release chord
+  if (k === 'escape') {
+    setActiveButton(null, null);
+    return;
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  const k = e.key.toLowerCase();
+  if (ROW_KEYS[k]) {
+    pendingRow = null;
+  }
+  if (COL_KEYS[k] !== undefined) {
+    pendingCol = null;
+  }
+});
+
+// ─────────────────────────────────────────────
+//  Init
+// ─────────────────────────────────────────────
+buildGrid();
+buildHarp();
+updateHUD();
+
+// Resume audio ctx on first interaction
+document.addEventListener('mousedown', () => { getCtx(); }, { once: true });
+document.addEventListener('keydown', () => { getCtx(); }, { once: true });
+</script>
+</body>
+</html>
