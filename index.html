@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Omnichord</title>
+  <script>
+    if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) && !location.search.includes('desktop')) {
+      location.replace('mobile.html');
+    }
+  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
 
