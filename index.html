@@ -439,29 +439,52 @@
       box-shadow: 0 0 6px rgba(255,80,200,0.9);
     }
 
-    /* Lights-off state */
-    .omnichord.lights-off .section-box,
-    .omnichord.lights-off .harp-section,
-    .omnichord.lights-off .chord-grid,
-    .omnichord.lights-off .logo-main,
-    .omnichord.lights-off .logo-stripe,
-    .omnichord.lights-off .cam-toggle-label {
-      opacity: 0.04;
-      pointer-events: none;
+    /* Lights-off state — kill neon glows only, UI stays visible */
+    .omnichord.lights-off .harp-string::after,
+    .omnichord.lights-off .harp-string.plucked::after,
+    .omnichord.lights-off .harp-string.cam-hover::after {
+      background: linear-gradient(90deg, transparent 0%, rgba(80,100,120,0.18) 10%, rgba(100,120,140,0.25) 50%, rgba(80,100,120,0.18) 90%, transparent 100%) !important;
+      box-shadow: none !important;
+      height: 1px !important;
     }
-    .omnichord.lights-off .vu-seg,
-    .omnichord.lights-off .eq-seg {
-      background: rgba(255,255,255,0.02) !important;
+    .omnichord.lights-off .vu-seg.lit-green,
+    .omnichord.lights-off .vu-seg.lit-yellow,
+    .omnichord.lights-off .vu-seg.lit-red {
+      background: rgba(255,255,255,0.06) !important;
       box-shadow: none !important;
     }
-    .omnichord.lights-off .harp-string::after { opacity: 0 !important; }
-    .omnichord.lights-off #powerBtn {
-      /* power button stays visible */
-      opacity: 1 !important;
-      pointer-events: auto !important;
+    .omnichord.lights-off .eq-seg.lit,
+    .omnichord.lights-off .eq-seg.lit-mid,
+    .omnichord.lights-off .eq-seg.lit-top {
+      background: rgba(255,255,255,0.06) !important;
+      box-shadow: none !important;
     }
-    /* Keep power button wrap out of the dimmed section-box */
-    .omnichord.lights-off .section-box--master { opacity: 1 !important; pointer-events: auto !important; }
+    .omnichord.lights-off .beat-led.on-bass,
+    .omnichord.lights-off .beat-led.on-snare {
+      background: rgba(255,255,255,0.08) !important;
+      box-shadow: none !important;
+    }
+    .omnichord.lights-off .big-btn.red.on,
+    .omnichord.lights-off .big-btn.beat-play-btn.playing {
+      box-shadow: 0 3px 8px rgba(0,0,0,0.5) !important;
+    }
+    .omnichord.lights-off .chord-btn.active,
+    .omnichord.lights-off .rhythm-btn.active,
+    .omnichord.lights-off .beat-btn.active {
+      box-shadow: none !important;
+    }
+    .omnichord.lights-off .section-box {
+      box-shadow: none !important;
+      border-color: rgba(0,180,255,0.06) !important;
+    }
+    .omnichord.lights-off .logo-main {
+      text-shadow: none !important;
+      color: rgba(180,200,230,0.4) !important;
+    }
+    .omnichord.lights-off .logo-stripe {
+      box-shadow: none !important;
+      opacity: 0.15 !important;
+    }
 
     /* ══════════════════════════
        CENTER PANEL
@@ -710,8 +733,8 @@
       cursor: crosshair;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 8px 0;
+      justify-content: stretch;
+      padding: 0;
     }
     .harp-strip::before {
       content: '';
@@ -724,11 +747,10 @@
     }
 
     .harp-string {
-      width: 100%;
-      height: 3px;
+      flex: 1;
       position: relative;
       cursor: pointer;
-      padding: 3px 0;
+      padding: 0;
     }
     .harp-string::after {
       content: '';
@@ -1689,8 +1711,7 @@ function buildHarp() {
     const s = document.createElement('div');
     s.className     = 'harp-string';
     s.dataset.index = i;
-    s.addEventListener('mouseenter', e => { if (e.buttons === 1 && getActiveFreqs()) pluckString(i); });
-    s.addEventListener('mousedown',  e => { e.preventDefault(); if (getActiveFreqs()) pluckString(i); });
+    s.addEventListener('mouseenter', () => { if (getActiveFreqs()) pluckString(i); });
     strip.appendChild(s);
     harpStringEls.push(s);
   }
@@ -2064,7 +2085,15 @@ powerBtnEl.addEventListener('click', () => {
   lightsOn = !lightsOn;
   omnichordEl.classList.toggle('lights-off', !lightsOn);
   powerBtnEl.classList.toggle('on', lightsOn);
-  if (!lightsOn && beatPlaying) stopBeat();
+  if (!lightsOn) {
+    // Stop all audio
+    stopHeld();
+    if (beatPlaying) stopBeat();
+    clearActiveChord();
+    if (audioCtx) audioCtx.suspend();
+  } else {
+    if (audioCtx) audioCtx.resume();
+  }
 });
 
 // ─────────────────────────────────────────────
