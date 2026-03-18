@@ -51,6 +51,7 @@
       left: 30px;
       right: 110px;
       display: flex;
+      align-items: center;
       padding: 18px 20px 18px 18px;
       gap: 12px;
     }
@@ -59,7 +60,7 @@
        LEFT PANEL
     ══════════════════════════ */
     .left-panel {
-      width: 160px;
+      width: 140px;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
@@ -86,7 +87,7 @@
 
     /* Section box layout variants */
     .section-box--row   { display: flex; gap: 8px; align-items: center; }
-    .section-box--grow  { flex: 1; }
+    .section-box--grow  { flex-grow: 0; }
 
     .section-label {
       font-size: 6.5px;
@@ -494,6 +495,8 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+      align-self: flex-start;
+      padding-top: 8px;
     }
 
     /* Logo */
@@ -651,10 +654,14 @@
     .chord-row.major   .btn-led { background: rgba(0,200,100,0.2); }
     .chord-row.minor   .btn-led { background: rgba(0,120,255,0.2); }
     .chord-row.seventh .btn-led { background: rgba(255,120,0,0.2); }
+    .chord-row.dim     .btn-led { background: rgba(180,0,255,0.2); }
+    .chord-row.aug     .btn-led { background: rgba(255,200,0,0.2); }
 
     .chord-btn.active                    .btn-led { background: #00ffaa; box-shadow: 0 0 8px #00ffaa, 0 0 14px rgba(0,255,170,0.6); }
     .chord-row.minor   .chord-btn.active .btn-led { background: #00aaff; box-shadow: 0 0 8px #00aaff, 0 0 14px rgba(0,170,255,0.6); }
     .chord-row.seventh .chord-btn.active .btn-led { background: #ff8800; box-shadow: 0 0 8px #ff8800, 0 0 14px rgba(255,136,0,0.6); }
+    .chord-row.dim     .chord-btn.active .btn-led { background: #b44dff; box-shadow: 0 0 8px #b44dff, 0 0 14px rgba(180,77,255,0.6); }
+    .chord-row.aug     .chord-btn.active .btn-led { background: #ffc800; box-shadow: 0 0 8px #ffc800, 0 0 14px rgba(255,200,0,0.6); }
 
     .btn-name {
       font-size: 8px;
@@ -689,11 +696,13 @@
        RIGHT HARP PANEL
     ══════════════════════════ */
     .harp-panel {
-      width: 240px;
+      width: 220px;
       flex-shrink: 0;
       display: flex;
       gap: 10px;
       align-items: stretch;
+      position: relative;
+      left: 64px;
     }
     .harp-section {
       flex: 0 0 auto;
@@ -705,7 +714,7 @@
     .harp-section-layout {
       display: flex;
       gap: 5px;
-      flex: 1;
+      height: 340px;
     }
 
     .arpegg-display {
@@ -1003,9 +1012,7 @@
       fill="url(#carbon)" opacity="0.8"/>
     <path d="M 784 40 Q 850 40 913 93 Q 1004 154 1001 260 Q 997 366 903 435 L 700 494 L 700 37 Q 743 35 784 40 Z"
       fill="rgba(15,20,32,0.5)"/>
-    <!-- Vertical panel dividers -->
-    <line x1="189" y1="26" x2="189" y2="494" stroke="#2a3555" stroke-width="1.5"/>
-    <line x1="786" y1="34" x2="786" y2="491" stroke="#2a3555" stroke-width="1.5"/>
+
     <!-- Top red neon stripe -->
     <path d="M 70 28 Q 425 25 700 28 L 700 32 Q 425 29 70 32 Z"
       fill="rgba(255,40,40,0.6)" filter="url(#redGlow)"/>
@@ -1244,7 +1251,7 @@
 // ─────────────────────────────────────────────
 //  Constants
 // ─────────────────────────────────────────────
-const CHORD_TYPES = Object.freeze({ MAJOR: 'major', MINOR: 'minor', SEVENTH: 'seventh' });
+const CHORD_TYPES = Object.freeze({ MAJOR: 'major', MINOR: 'minor', SEVENTH: 'seventh', DIM: 'dim', AUG: 'aug' });
 
 const COLS = [
   { name:'D♭', key:'1' }, { name:'A♭', key:'2' }, { name:'E♭', key:'3' },
@@ -1256,23 +1263,33 @@ const ROWS = [
   { label:'Major', type:CHORD_TYPES.MAJOR,   key:'a', cssClass:'major'   },
   { label:'Minor', type:CHORD_TYPES.MINOR,   key:'s', cssClass:'minor'   },
   { label:'7th',   type:CHORD_TYPES.SEVENTH, key:'d', cssClass:'seventh' },
+  { label:'Dim',   type:CHORD_TYPES.DIM,     key:'f', cssClass:'dim'     },
+  { label:'Aug',   type:CHORD_TYPES.AUG,     key:'g', cssClass:'aug'     },
 ];
 const ROOT_SEMI = {
   'D♭':1,'A♭':8,'E♭':3,'B♭':10,'F':5,'C':0,
   'G':7,'D':2,'A':9,'E':4,'B':11,'F♯':6,
 };
-const ROW_KEYS = { 'a': CHORD_TYPES.MAJOR, 's': CHORD_TYPES.MINOR, 'd': CHORD_TYPES.SEVENTH };
+const ROW_KEYS = { 'a': CHORD_TYPES.MAJOR, 's': CHORD_TYPES.MINOR, 'd': CHORD_TYPES.SEVENTH, 'f': CHORD_TYPES.DIM, 'g': CHORD_TYPES.AUG };
 const COL_KEYS = { '1':0,'2':1,'3':2,'4':3,'5':4,'6':5,'7':6,'8':7,'9':8,'0':9,'-':10,'=':11 };
 
-/** Single source of truth mapping row combinations → intervals + label. */
+/** Single source of truth mapping row combinations → intervals + label.
+    Flags: M=major, m=minor, S=seventh, D=dim, A=aug */
 const CHORD_MAP = Object.freeze([
-  { M:true,  m:true,  S:true,  intervals:[0,4,8],        label:'Aug'  },
-  { M:true,  m:true,  S:false, intervals:[0,3,6],        label:'Dim'  },
-  { M:true,  m:false, S:true,  intervals:[0,4,7,11],     label:'Maj7' },
-  { M:false, m:true,  S:true,  intervals:[0,3,7,10],     label:'Min7' },
-  { M:true,  m:false, S:false, intervals:[0,4,7],        label:'Maj'  },
-  { M:false, m:true,  S:false, intervals:[0,3,7],        label:'Min'  },
-  { M:false, m:false, S:true,  intervals:[0,4,7,10],     label:'7'    },
+  // Single rows
+  { M:true,  m:false, S:false, D:false, A:false, intervals:[0,4,7],        label:'Maj'   },
+  { M:false, m:true,  S:false, D:false, A:false, intervals:[0,3,7],        label:'Min'   },
+  { M:false, m:false, S:true,  D:false, A:false, intervals:[0,4,7,10],     label:'7'     },
+  { M:false, m:false, S:false, D:true,  A:false, intervals:[0,3,6],        label:'Dim'   },
+  { M:false, m:false, S:false, D:false, A:true,  intervals:[0,4,8],        label:'Aug'   },
+  // Combos with 7th
+  { M:true,  m:false, S:true,  D:false, A:false, intervals:[0,4,7,11],     label:'Maj7'  },
+  { M:false, m:true,  S:true,  D:false, A:false, intervals:[0,3,7,10],     label:'Min7'  },
+  { M:false, m:false, S:true,  D:true,  A:false, intervals:[0,3,6,10],     label:'Dim7'  },
+  { M:false, m:false, S:true,  D:false, A:true,  intervals:[0,4,8,10],     label:'Aug7'  },
+  // Legacy combos
+  { M:true,  m:true,  S:false, D:false, A:false, intervals:[0,3,6],        label:'Dim'   },
+  { M:true,  m:true,  S:true,  D:false, A:false, intervals:[0,4,8],        label:'Aug'   },
 ]);
 
 // ─────────────────────────────────────────────
@@ -1576,7 +1593,9 @@ function getChordInfo(rows) {
   const M = rows.has(CHORD_TYPES.MAJOR);
   const m = rows.has(CHORD_TYPES.MINOR);
   const S = rows.has(CHORD_TYPES.SEVENTH);
-  return CHORD_MAP.find(e => e.M === M && e.m === m && e.S === S) ?? null;
+  const D = rows.has(CHORD_TYPES.DIM);
+  const A = rows.has(CHORD_TYPES.AUG);
+  return CHORD_MAP.find(e => e.M === M && e.m === m && e.S === S && e.D === D && e.A === A) ?? null;
 }
 
 function getActiveFreqs() {
@@ -1603,31 +1622,28 @@ function clearActiveChord() {
   updateArpeggDisplay();
 }
 
-/** Toggle a row type on/off for a given column, keeping multi-select within same column. */
+/** Toggle a row type on/off for a given column — only one button active at a time. */
 function toggleRow(rowType, col) {
-  // Clicking a different column clears everything first
-  if (col !== activeCol) {
-    activeRows.forEach(rt => buttonMap.get(`${rt}:${activeCol}`)?.classList.remove('active'));
-    activeRows.clear();
-    activeCol = col;
-  }
-
-  if (activeRows.has(rowType)) {
-    // Deselect this row
-    activeRows.delete(rowType);
+  // If clicking the already-active button, deselect it
+  if (col === activeCol && activeRows.has(rowType) && activeRows.size === 1) {
     buttonMap.get(`${rowType}:${col}`)?.classList.remove('active');
-  } else {
-    activeRows.add(rowType);
-    buttonMap.get(`${rowType}:${col}`)?.classList.add('active');
-  }
-
-  if (activeRows.size === 0) {
+    activeRows.clear();
     activeCol = null;
     stopHeld();
-  } else {
-    playChordSustained(getActiveFreqs());
+    updateHUD();
+    updateArpeggDisplay();
+    return;
   }
 
+  // Clear any previous selection
+  activeRows.forEach(rt => buttonMap.get(`${rt}:${activeCol}`)?.classList.remove('active'));
+  activeRows.clear();
+
+  activeCol = col;
+  activeRows.add(rowType);
+  buttonMap.get(`${rowType}:${col}`)?.classList.add('active');
+
+  playChordSustained(getActiveFreqs());
   updateHUD();
   updateArpeggDisplay();
 }
@@ -1637,7 +1653,7 @@ function updateHUD() {
   const name = getChordDisplayName();
   hud.innerHTML = name
     ? `Playing: <span class="chord-name">${name}</span> &nbsp;·&nbsp; Strum: <strong>Space / ↑↓</strong> &nbsp;·&nbsp; Shift-click rows to combine`
-    : `Select chord &nbsp;·&nbsp; Row: <strong>A</strong>=Maj &nbsp;<strong>S</strong>=Min &nbsp;<strong>D</strong>=7th &nbsp;·&nbsp; Col: <strong>1–=</strong> &nbsp;·&nbsp; Shift-click to combine rows`;
+    : `Select chord &nbsp;·&nbsp; Row: <strong>A</strong>=Maj &nbsp;<strong>S</strong>=Min &nbsp;<strong>D</strong>=7th &nbsp;<strong>F</strong>=Dim &nbsp;<strong>G</strong>=Aug &nbsp;·&nbsp; Col: <strong>1–=</strong> &nbsp;·&nbsp; Shift-click to combine rows`;
 }
 
 function updateArpeggDisplay() {
@@ -1666,19 +1682,9 @@ function buildGrid() {
       btn.className = 'chord-btn';
       btn.title     = `${col.name} ${row.label}  [${row.key}+${col.key}]`;
 
-      const name = document.createElement('div');
-      name.className   = 'btn-name';
-      name.textContent = col.name;
-
-      const key = document.createElement('div');
-      key.className   = 'btn-key';
-      key.textContent = `${row.key}${col.key}`;
-
       const led = document.createElement('div');
       led.className = 'btn-led';
 
-      btn.appendChild(name);
-      btn.appendChild(key);
       btn.appendChild(led);
 
       buttonMap.set(`${row.type}:${ci}`, btn);
