@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Omnichord — Mobile</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
@@ -108,7 +108,6 @@
       flex: 1;
       overflow-y: auto;
       overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
       padding: 6px;
     }
 
@@ -246,6 +245,11 @@
       background: linear-gradient(90deg, transparent 0%, rgba(0,200,255,0.6) 10%, rgba(0,240,255,1) 50%, rgba(0,200,255,0.6) 90%, transparent 100%);
       box-shadow: 0 0 8px rgba(0,220,255,0.8);
     }
+    .strum-btn-row {
+      display: flex;
+      gap: 3px;
+      justify-content: center;
+    }
 
     /* ── Bottom toolbar ── */
     .toolbar {
@@ -258,7 +262,6 @@
       background: rgba(0,0,0,0.5);
       border-top: 1px solid rgba(0,180,255,0.12);
       overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
     }
 
     .tb-group {
@@ -394,7 +397,7 @@
     <!-- Strum strip -->
     <div class="strum-panel">
       <div class="strum-strip" id="strumStrip"></div>
-      <div style="display:flex; gap:3px; justify-content:center;">
+      <div class="strum-btn-row">
         <div class="strum-btn" id="strumDown">↓</div>
         <div class="strum-btn" id="strumUp">↑</div>
       </div>
@@ -483,11 +486,24 @@ function semiToFreq(semi, octave = 4) {
 //  Web Audio
 // ─────────────────────────────────────────────
 let audioCtx = null;
+let audioUnlocked = false;
 function getCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   initBuses(audioCtx);
   return audioCtx;
+}
+function unlockAudio() {
+  const ctx = getCtx();
+  if (audioUnlocked) return;
+  // Play a silent buffer to permanently unlock audio on iOS Safari
+  const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.start(0);
+  if (ctx.state === 'suspended') ctx.resume();
+  audioUnlocked = true;
 }
 
 let heldNodes = [];
@@ -785,6 +801,7 @@ function buildGrid() {
 
       btn.addEventListener('pointerdown', e => {
         e.preventDefault();
+        unlockAudio();
         toggleRow(row.type, ci);
       });
 
@@ -818,6 +835,7 @@ function buildHarp() {
   let lastTouched = -1;
   strip.addEventListener('pointerdown', e => {
     e.preventDefault();
+    unlockAudio();
     strip.setPointerCapture(e.pointerId);
     lastTouched = -1;
     handleStrumTouch(e);
@@ -885,11 +903,13 @@ document.getElementById('voiceBtns').addEventListener('pointerdown', e => {
 // ─────────────────────────────────────────────
 document.getElementById('strumDown').addEventListener('pointerdown', e => {
   e.preventDefault();
+  unlockAudio();
   const freqs = getActiveFreqs();
   if (freqs) strumChord(freqs, 'down');
 });
 document.getElementById('strumUp').addEventListener('pointerdown', e => {
   e.preventDefault();
+  unlockAudio();
   const freqs = getActiveFreqs();
   if (freqs) strumChord(freqs, 'up');
 });
@@ -1014,6 +1034,7 @@ document.getElementById('beatBtns').addEventListener('pointerdown', e => {
 
 document.getElementById('beatPlayBtn').addEventListener('pointerdown', e => {
   e.preventDefault();
+  unlockAudio();
   if (beatPlaying) stopBeat(); else startBeat();
 });
 
@@ -1025,7 +1046,7 @@ buildHarp();
 buildBeatLeds();
 updateDisplay();
 
-document.addEventListener('pointerdown', () => getCtx(), { once: true });
+document.addEventListener('pointerdown', () => unlockAudio(), { once: true });
 </script>
 </body>
 </html>

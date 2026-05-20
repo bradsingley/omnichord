@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Omnichord — TE Edition</title>
+  <script>
+    if (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) && !location.search.includes('desktop')) {
+      location.replace('mobile.html');
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #d4d0ca;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Inter', -apple-system, sans-serif;
+      overflow: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* ── Device shell ── */
+    .te-device {
+      position: relative;
+      width: 1060px;
+      height: 540px;
+      background: linear-gradient(180deg, #f0ede8 0%, #e8e4de 40%, #ddd9d2 100%);
+      border-radius: 18px;
+      box-shadow:
+        0 1px 0 #fff inset,
+        0 -1px 0 rgba(0,0,0,0.08) inset,
+        0 20px 60px rgba(0,0,0,0.18),
+        0 4px 12px rgba(0,0,0,0.12);
+      display: flex;
+      padding: 20px;
+      gap: 16px;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    /* Subtle top-bevel highlight */
+    .te-device::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 50%;
+      border-radius: 18px 18px 0 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* Grid lines etched into body */
+    .te-device::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background-image:
+        linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    /* ══════════════════════════
+       LEFT PANEL (controls)
+    ══════════════════════════ */
+    .left-panel {
+      width: 160px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1;
+    }
+
+    .te-label {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: rgba(0,0,0,0.35);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* TE-style section panels */
+    .te-section {
+      background: rgba(255,255,255,0.5);
+      border-radius: 10px;
+      padding: 10px;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    /* ── OLED Display ── */
+    .te-display {
+      background: #0a0a0a;
+      border-radius: 8px;
+      padding: 10px 12px;
+      border: 1px solid rgba(0,0,0,0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    .te-display::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 30%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+      pointer-events: none;
+    }
+    .display-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .display-chord {
+      font-family: 'Space Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.04em;
+    }
+    .display-voice {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      color: rgba(255,255,255,0.45);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .display-beat-leds {
+      display: flex;
+      gap: 3px;
+      margin-top: 6px;
+    }
+    .display-led {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      transition: background 60ms;
+    }
+    .display-led.on-bass {
+      background: #fff;
+      box-shadow: 0 0 4px rgba(255,255,255,0.6);
+    }
+    .display-led.on-snare {
+      background: #ff6b2b;
+      box-shadow: 0 0 4px rgba(255,107,43,0.6);
+    }
+    .display-bpm {
+      font-family: 'Space Mono', monospace;
+      font-size: 9px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.06em;
+      margin-top: 4px;
+    }
+
+    /* ── Big round buttons (TE style) ── */
+    .te-btn-round {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      transition: transform 50ms;
+      box-shadow:
+        0 2px 0 rgba(0,0,0,0.12),
+        0 4px 8px rgba(0,0,0,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.8);
+    }
+    .te-btn-round:active { transform: scale(0.92) translateY(1px); }
+    .te-btn-round--white {
+      background: linear-gradient(180deg, #faf9f7 0%, #eae7e2 100%);
+    }
+    .te-btn-round--orange {
+      background: linear-gradient(180deg, #ff7a2b 0%, #e05a10 100%);
+      box-shadow:
+        0 2px 0 rgba(180,60,0,0.3),
+        0 4px 8px rgba(255,100,30,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+    .te-btn-round--green {
+      background: linear-gradient(180deg, #2bcc6e 0%, #1a9e50 100%);
+      box-shadow:
+        0 2px 0 rgba(0,100,40,0.3),
+        0 4px 8px rgba(40,200,100,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .te-btn-round--dark {
+      background: linear-gradient(180deg, #3a3a3a 0%, #1a1a1a 100%);
+      box-shadow:
+        0 2px 0 rgba(0,0,0,0.25),
+        0 4px 8px rgba(0,0,0,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    .te-btn-label {
+      font-size: 6px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      color: rgba(0,0,0,0.3);
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 3px;
+      font-family: 'Space Mono', monospace;
+    }
+    .te-btn-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Master controls row ── */
+    .master-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── TE Knob ── */
+    .te-knob {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e8e5e0 0%, #ccc8c0 100%);
+      border: 1px solid rgba(0,0,0,0.1);
+      box-shadow:
+        0 2px 6px rgba(0,0,0,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.7);
+      cursor: ns-resize;
+      position: relative;
+    }
+    .te-knob::after {
+      content: '';
+      position: absolute;
+      width: 2px;
+      height: 8px;
+      background: rgba(0,0,0,0.35);
+      border-radius: 1px;
+      left: 50%;
+      top: 3px;
+      transform: translateX(-50%);
+      transform-origin: bottom center;
+    }
+    .te-knob--large {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #f0ede8 0%, #d8d4cc 100%);
+      box-shadow:
+        0 3px 10px rgba(0,0,0,0.15),
+        inset 0 2px 0 rgba(255,255,255,0.6);
+    }
+    .te-knob--large::after {
+      height: 10px;
+    }
+    .te-knob-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+    .te-knob-label {
+      font-size: 6px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: rgba(0,0,0,0.3);
+      text-transform: uppercase;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* ── Voice selector (pill buttons) ── */
+    .voice-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+    .voice-btn {
+      height: 18px;
+      border-radius: 9px;
+      border: 1px solid rgba(0,0,0,0.1);
+      background: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-size: 7px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Mono', monospace;
+      letter-spacing: 0.02em;
+      text-transform: lowercase;
+      transition: all 80ms;
+    }
+    .voice-btn:hover { border-color: rgba(0,0,0,0.2); color: rgba(0,0,0,0.6); }
+    .voice-btn.active {
+      background: #1a1a1a;
+      color: #fff;
+      border-color: #1a1a1a;
+    }
+
+    /* ── Beat pattern buttons ── */
+    .beat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+    .beat-btn {
+      height: 20px;
+      border-radius: 4px;
+      border: 1px solid rgba(0,0,0,0.1);
+      background: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-size: 7px;
+      font-weight: 700;
+      color: rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Mono', monospace;
+      letter-spacing: 0.1em;
+      transition: all 80ms;
+    }
+    .beat-btn:hover { border-color: rgba(0,0,0,0.2); }
+    .beat-btn.active {
+      background: #ff6b2b;
+      color: #fff;
+      border-color: #ff6b2b;
+    }
+    .beat-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    /* ══════════════════════════
+       CENTER PANEL (chord grid)
+    ══════════════════════════ */
+    .center-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 1;
+      padding-top: 4px;
+    }
+
+    /* Logo area */
+    .te-logo {
+      text-align: center;
+      padding: 0 0 4px;
+    }
+    .te-logo-main {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.65);
+      font-family: 'Inter', sans-serif;
+    }
+    .te-logo-sub {
+      font-size: 7px;
+      letter-spacing: 0.4em;
+      color: rgba(0,0,0,0.25);
+      text-transform: uppercase;
+      font-family: 'Space Mono', monospace;
+      margin-top: 1px;
+    }
+    .te-logo-line {
+      height: 1px;
+      background: rgba(0,0,0,0.08);
+      margin: 4px 0;
+    }
+
+    /* Column headers */
+    .te-col-headers {
+      display: grid;
+      grid-template-columns: 44px repeat(12, 1fr);
+      gap: 4px;
+      padding: 0 2px;
+    }
+    .te-col-header {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(0,0,0,0.4);
+      text-align: center;
+      letter-spacing: 0.02em;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* Chord grid */
+    .te-chord-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      background: rgba(0,0,0,0.12);
+      border-radius: 10px;
+      padding: 2px;
+    }
+    .te-chord-row {
+      display: grid;
+      grid-template-columns: 44px repeat(12, 1fr);
+      gap: 2px;
+      align-items: center;
+    }
+    .te-row-label {
+      font-size: 7px;
+      font-weight: 700;
+      color: rgba(0,0,0,0.35);
+      text-align: right;
+      padding-right: 6px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* TE-style chord buttons — convex white plastic, OP-1 inspired */
+    .te-chord-btn {
+      height: 46px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      transition: transform 40ms, box-shadow 40ms;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 2px;
+      background:
+        radial-gradient(ellipse at 40% 25%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 60%),
+        linear-gradient(180deg, #f5f3ef 0%, #e8e5e0 40%, #dddad4 100%);
+      box-shadow:
+        0 3px 1px rgba(0,0,0,0.06),
+        0 5px 4px rgba(0,0,0,0.04),
+        inset 0 1px 0 rgba(255,255,255,0.95),
+        inset 0 -1px 0 rgba(0,0,0,0.04),
+        inset 1px 0 0 rgba(255,255,255,0.5),
+        inset -1px 0 0 rgba(255,255,255,0.5);
+    }
+    .te-chord-btn:hover {
+      box-shadow:
+        0 3px 1px rgba(0,0,0,0.06),
+        0 5px 4px rgba(0,0,0,0.04),
+        0 0 0 1px rgba(0,0,0,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.95),
+        inset 0 -1px 0 rgba(0,0,0,0.04);
+    }
+    .te-chord-btn.pressed {
+      transform: translateY(2px);
+      box-shadow:
+        0 1px 0 rgba(0,0,0,0.04),
+        inset 0 2px 6px rgba(0,0,0,0.1),
+        inset 0 1px 2px rgba(0,0,0,0.06);
+      background:
+        linear-gradient(180deg, #e8e5e0 0%, #dddad4 40%, #d5d2cc 100%);
+    }
+    .te-chord-btn.active {
+      background:
+        radial-gradient(ellipse at 40% 25%, rgba(60,60,60,0.3) 0%, rgba(0,0,0,0) 60%),
+        linear-gradient(180deg, #333 0%, #1a1a1a 40%, #111 100%);
+      transform: translateY(1px);
+      box-shadow:
+        0 1px 0 rgba(0,0,0,0.15),
+        inset 0 2px 4px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    /* LED dot */
+    .te-btn-led {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.06);
+      position: absolute;
+      bottom: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: all 80ms;
+    }
+    .te-chord-row.major   .te-btn-led { background: rgba(0,0,0,0.08); }
+    .te-chord-row.minor   .te-btn-led { background: rgba(0,0,0,0.08); }
+    .te-chord-row.seventh .te-btn-led { background: rgba(0,0,0,0.08); }
+    .te-chord-row.dim     .te-btn-led { background: rgba(0,0,0,0.08); }
+    .te-chord-row.aug     .te-btn-led { background: rgba(0,0,0,0.08); }
+
+    .te-chord-btn.active .te-btn-led { background: #ff6b2b; box-shadow: 0 0 6px rgba(255,107,43,0.8); }
+    .te-chord-row.minor   .te-chord-btn.active .te-btn-led { background: #2bcc6e; box-shadow: 0 0 6px rgba(43,204,110,0.8); }
+    .te-chord-row.seventh .te-chord-btn.active .te-btn-led { background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.6); }
+    .te-chord-row.dim     .te-chord-btn.active .te-btn-led { background: #ff4444; box-shadow: 0 0 6px rgba(255,68,68,0.8); }
+    .te-chord-row.aug     .te-chord-btn.active .te-btn-led { background: #ffcc00; box-shadow: 0 0 6px rgba(255,204,0,0.8); }
+
+    .te-btn-name {
+      font-size: 8px;
+      font-weight: 600;
+      color: rgba(0,0,0,0.3);
+      letter-spacing: 0.02em;
+      line-height: 1;
+      font-family: 'Space Mono', monospace;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .te-chord-btn.active .te-btn-name { color: rgba(255,255,255,0.5); text-shadow: none; }
+    .te-btn-key {
+      font-size: 5px;
+      color: rgba(0,0,0,0.2);
+      font-family: 'Space Mono', monospace;
+    }
+    .te-chord-btn.active .te-btn-key { color: rgba(255,255,255,0.4); }
+
+    /* ══════════════════════════
+       RIGHT PANEL (strum plate + speaker)
+    ══════════════════════════ */
+    .right-panel {
+      width: 220px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1;
+    }
+
+    /* Strum plate — rubberized touch surface */
+    .strum-plate {
+      flex: 1;
+      background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 50%, #222 100%);
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.2);
+      box-shadow:
+        inset 0 2px 8px rgba(0,0,0,0.4),
+        inset 0 -1px 0 rgba(255,255,255,0.03),
+        0 2px 4px rgba(0,0,0,0.1);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    /* Subtle texture overlay */
+    .strum-plate::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 4px 4px;
+      pointer-events: none;
+      border-radius: 10px;
+    }
+    /* Edge groove lines */
+    .strum-plate::after {
+      content: '';
+      position: absolute;
+      top: 8px; bottom: 8px; left: 8px; right: 8px;
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 6px;
+      pointer-events: none;
+    }
+
+    .harp-string {
+      flex: 1;
+      position: relative;
+      cursor: pointer;
+    }
+    .harp-string::after {
+      content: '';
+      position: absolute;
+      top: 50%; transform: translateY(-50%);
+      left: 14px; right: 14px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 10%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.06) 90%, transparent 100%);
+      transition: all 100ms;
+    }
+    .harp-string.plucked::after {
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,107,43,0.5) 10%, rgba(255,150,80,0.9) 50%, rgba(255,107,43,0.5) 90%, transparent 100%);
+      box-shadow: 0 0 10px rgba(255,107,43,0.6);
+    }
+    .harp-string:hover::after {
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 10%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.15) 90%, transparent 100%);
+    }
+
+    /* Strum direction buttons */
+    .strum-btns {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+    .strum-dir-btn {
+      width: 40px;
+      height: 26px;
+      border-radius: 6px;
+      border: 1px solid rgba(0,0,0,0.1);
+      background: linear-gradient(180deg, #faf9f7 0%, #eae7e2 100%);
+      cursor: pointer;
+      font-size: 12px;
+      color: rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 50ms;
+      box-shadow: 0 2px 0 rgba(0,0,0,0.08), 0 3px 6px rgba(0,0,0,0.05);
+    }
+    .strum-dir-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+    }
+
+    /* Speaker + strum-btns row */
+    .strum-bottom {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Speaker grille — dot matrix pattern */
+    .speaker-grille {
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      background: #e2ded8;
+      border: 1px solid rgba(0,0,0,0.06);
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);
+      flex-shrink: 0;
+    }
+    .speaker-grille svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── HUD ── */
+    .te-hud {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26,26,26,0.9);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      color: rgba(255,255,255,0.6);
+      font-size: 10px;
+      font-family: 'Space Mono', monospace;
+      padding: 7px 20px;
+      border-radius: 20px;
+      letter-spacing: 0.06em;
+      pointer-events: none;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+    .te-hud .chord-name {
+      font-weight: 700;
+      color: #ff6b2b;
+    }
+
+    /* ── Rubber feet ── */
+    .te-device .foot {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #666;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+      z-index: 0;
+    }
+    .foot--tl { top: 8px; left: 8px; }
+    .foot--tr { top: 8px; right: 8px; }
+    .foot--bl { bottom: 8px; left: 8px; }
+    .foot--br { bottom: 8px; right: 8px; }
+
+    /* TE engraved text */
+    .te-engraved {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Space Mono', monospace;
+      font-size: 7px;
+      letter-spacing: 0.3em;
+      color: rgba(0,0,0,0.15);
+      text-transform: uppercase;
+      white-space: nowrap;
+      z-index: 1;
+    }
+
+    .te-section--grow {
+      flex: 1;
+    }
+    .te-label--center {
+      text-align: center;
+    }
+
+    /* Lights-off (power off) */
+    .te-device.lights-off .te-display {
+      background: #1a1a1a;
+    }
+    .te-device.lights-off .display-chord,
+    .te-device.lights-off .display-voice,
+    .te-device.lights-off .display-bpm {
+      color: transparent;
+    }
+    .te-device.lights-off .display-led.on-bass,
+    .te-device.lights-off .display-led.on-snare {
+      background: rgba(255,255,255,0.08);
+      box-shadow: none;
+    }
+    .te-device.lights-off .te-chord-btn.active .te-btn-led {
+      background: rgba(0,0,0,0.06);
+      box-shadow: none;
+    }
+    .te-device.lights-off .harp-string.plucked::after {
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
+      box-shadow: none;
+    }
+
+    /* Credits */
+    .te-credits {
+      text-align: center;
+      margin-top: 2px;
+    }
+    .te-credits-text {
+      font-size: 7px;
+      letter-spacing: 0.2em;
+      color: rgba(0,0,0,0.2);
+      text-transform: uppercase;
+      font-family: 'Space Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+
+<div class="te-device" id="teDevice">
+  <!-- Rubber feet -->
+  <div class="foot foot--tl"></div>
+  <div class="foot foot--tr"></div>
+  <div class="foot foot--bl"></div>
+  <div class="foot foot--br"></div>
+
+  <!-- Engraved bottom text -->
+  <div class="te-engraved">teenage engineering × omnichord</div>
+
+  <!-- ══ LEFT PANEL ══ -->
+  <div class="left-panel">
+
+    <!-- OLED Display -->
+    <div class="te-display">
+      <div class="display-row">
+        <div class="display-chord" id="displayChord">—</div>
+        <div class="display-voice" id="displayVoice">organ</div>
+      </div>
+      <div class="display-beat-leds" id="beatLeds"></div>
+      <div class="display-bpm" id="displayBpm">120 bpm</div>
+    </div>
+
+    <!-- Master -->
+    <div class="te-section">
+      <div class="te-label">Master</div>
+      <div class="master-row">
+        <div class="te-btn-wrap">
+          <div class="te-btn-round te-btn-round--orange" id="powerBtn"></div>
+          <div class="te-btn-label">power</div>
+        </div>
+        <div class="te-knob-wrap">
+          <div class="te-knob te-knob--large" id="masterVolKnob" data-knob="chordVol"></div>
+          <div class="te-knob-label">chord</div>
+        </div>
+        <div class="te-knob-wrap">
+          <div class="te-knob" id="strumVolKnob" data-knob="strumVol"></div>
+          <div class="te-knob-label">strum</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice -->
+    <div class="te-section te-section--grow">
+      <div class="te-label">Voice</div>
+      <div class="voice-grid" id="voiceBtns">
+        <div class="voice-btn active" data-voice="organ">organ</div>
+        <div class="voice-btn" data-voice="strings">str</div>
+        <div class="voice-btn" data-voice="choir">choir</div>
+        <div class="voice-btn" data-voice="flute">flute</div>
+        <div class="voice-btn" data-voice="brass">brass</div>
+        <div class="voice-btn" data-voice="pad">pad</div>
+        <div class="voice-btn" data-voice="bell">bell</div>
+        <div class="voice-btn" data-voice="pluck">pluck</div>
+        <div class="voice-btn" data-voice="bass">bass</div>
+        <div class="voice-btn" data-voice="lead">lead</div>
+        <div class="voice-btn" data-voice="crystal">crys</div>
+      </div>
+    </div>
+
+    <!-- Beats -->
+    <div class="te-section">
+      <div class="te-label">Beats</div>
+      <div class="beat-grid" id="beatBtns">
+        <div class="beat-btn active" data-beat="0">I</div>
+        <div class="beat-btn" data-beat="1">II</div>
+        <div class="beat-btn" data-beat="2">III</div>
+        <div class="beat-btn" data-beat="3">IV</div>
+        <div class="beat-btn" data-beat="4">V</div>
+        <div class="beat-btn" data-beat="5">VI</div>
+      </div>
+      <div class="beat-controls">
+        <div class="te-btn-wrap">
+          <div class="te-btn-round te-btn-round--green" id="beatPlayBtn"></div>
+          <div class="te-btn-label">play</div>
+        </div>
+        <div class="te-knob-wrap">
+          <div class="te-knob" id="beatVolKnob" data-knob="beatVol"></div>
+          <div class="te-knob-label">vol</div>
+        </div>
+        <div class="te-knob-wrap">
+          <div class="te-knob" id="beatTempoKnob" data-knob="beatTempo"></div>
+          <div class="te-knob-label">tempo</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ CENTER PANEL ══ -->
+  <div class="center-panel">
+    <div class="te-logo">
+      <div class="te-logo-main">Omnichord</div>
+      <div class="te-logo-sub">TE–01 System Interface</div>
+      <div class="te-logo-line"></div>
+    </div>
+
+    <div class="te-col-headers">
+      <div></div>
+      <div class="te-col-header">C♯</div>
+      <div class="te-col-header">G♯</div>
+      <div class="te-col-header">D♯</div>
+      <div class="te-col-header">A♯</div>
+      <div class="te-col-header">F</div>
+      <div class="te-col-header">C</div>
+      <div class="te-col-header">G</div>
+      <div class="te-col-header">D</div>
+      <div class="te-col-header">A</div>
+      <div class="te-col-header">E</div>
+      <div class="te-col-header">B</div>
+      <div class="te-col-header">F♯</div>
+    </div>
+
+    <div class="te-chord-grid" id="chordGrid"></div>
+
+    <div class="te-credits">
+      <div class="te-credits-text">TE-01 · System Interface · Suzuki</div>
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL ══ -->
+  <div class="right-panel">
+    <div class="te-label te-label--center">Strum Plate</div>
+    <div class="strum-plate" id="harpStrip"></div>
+    <div class="strum-bottom">
+      <div class="strum-btns">
+        <div class="strum-dir-btn" id="strumDownBtn">↓</div>
+        <div class="strum-dir-btn" id="strumUpBtn">↑</div>
+      </div>
+      <div class="speaker-grille">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <clipPath id="grillClip"><rect x="0" y="0" width="100" height="100" rx="5"/></clipPath>
+          </defs>
+          <g clip-path="url(#grillClip)">
+            <script type="text/javascript">
+              const svgNS = "http://www.w3.org/2000/svg";
+              const parent = document.currentScript.parentNode;
+              for (let y = 3; y < 100; y += 6) {
+                for (let x = 3; x < 100; x += 6) {
+                  const c = document.createElementNS(svgNS, "circle");
+                  c.setAttribute("cx", x);
+                  c.setAttribute("cy", y);
+                  c.setAttribute("r", "1.8");
+                  c.setAttribute("fill", "rgba(0,0,0,0.2)");
+                  parent.appendChild(c);
+                }
+              }
+            </script>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="te-hud" id="hud">
+  Select chord · Row: <strong>A</strong>=Maj &nbsp;<strong>S</strong>=Min &nbsp;<strong>D</strong>=7th · Col: <strong>1–=</strong> · Strum: <strong>Space / ↑↓</strong>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  Constants
+// ─────────────────────────────────────────────
+const CHORD_TYPES = Object.freeze({ MAJOR: 'major', MINOR: 'minor', SEVENTH: 'seventh', DIM: 'dim', AUG: 'aug' });
+
+const COLS = [
+  { name:'C♯', key:'1' }, { name:'G♯', key:'2' }, { name:'D♯', key:'3' },
+  { name:'A♯', key:'4' }, { name:'F',  key:'5' }, { name:'C',  key:'6' },
+  { name:'G',  key:'7' }, { name:'D',  key:'8' }, { name:'A',  key:'9' },
+  { name:'E',  key:'0' }, { name:'B',  key:'-' }, { name:'F♯', key:'=' },
+];
+const ROWS = [
+  { label:'Major', type:CHORD_TYPES.MAJOR,   key:'a', cssClass:'major'   },
+  { label:'Minor', type:CHORD_TYPES.MINOR,   key:'s', cssClass:'minor'   },
+  { label:'7th',   type:CHORD_TYPES.SEVENTH, key:'d', cssClass:'seventh' },
+  { label:'Dim',   type:CHORD_TYPES.DIM,     key:'f', cssClass:'dim'     },
+  { label:'Aug',   type:CHORD_TYPES.AUG,     key:'g', cssClass:'aug'     },
+];
+const ROOT_SEMI = {
+  'C♯':1,'G♯':8,'D♯':3,'A♯':10,'F':5,'C':0,
+  'G':7,'D':2,'A':9,'E':4,'B':11,'F♯':6,
+};
+const ROW_KEYS = { 'a': CHORD_TYPES.MAJOR, 's': CHORD_TYPES.MINOR, 'd': CHORD_TYPES.SEVENTH, 'f': CHORD_TYPES.DIM, 'g': CHORD_TYPES.AUG };
+const COL_KEYS = { '1':0,'2':1,'3':2,'4':3,'5':4,'6':5,'7':6,'8':7,'9':8,'0':9,'-':10,'=':11 };
+
+const CHORD_MAP = Object.freeze([
+  { M:true,  m:false, S:false, D:false, A:false, intervals:[0,4,7],    label:'Maj'  },
+  { M:false, m:true,  S:false, D:false, A:false, intervals:[0,3,7],    label:'Min'  },
+  { M:false, m:false, S:true,  D:false, A:false, intervals:[0,4,7,10], label:'7'    },
+  { M:false, m:false, S:false, D:true,  A:false, intervals:[0,3,6],    label:'Dim'  },
+  { M:false, m:false, S:false, D:false, A:true,  intervals:[0,4,8],    label:'Aug'  },
+  { M:true,  m:false, S:true,  D:false, A:false, intervals:[0,4,7,11], label:'Maj7' },
+  { M:false, m:true,  S:true,  D:false, A:false, intervals:[0,3,7,10], label:'Min7' },
+  { M:false, m:false, S:true,  D:true,  A:false, intervals:[0,3,6,10], label:'Dim7' },
+  { M:false, m:false, S:true,  D:false, A:true,  intervals:[0,4,8,10], label:'Aug7' },
+  { M:true,  m:true,  S:false, D:false, A:false, intervals:[0,3,6],    label:'Dim'  },
+  { M:true,  m:true,  S:true,  D:false, A:false, intervals:[0,4,8],    label:'Aug'  },
+]);
+
+// ─────────────────────────────────────────────
+//  Music helpers
+// ─────────────────────────────────────────────
+function semiToFreq(semi, octave = 4) {
+  return 261.63 * Math.pow(2, (semi + (octave - 4) * 12) / 12);
+}
+
+// ─────────────────────────────────────────────
+//  Web Audio
+// ─────────────────────────────────────────────
+let audioCtx = null;
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  initBuses(audioCtx);
+  return audioCtx;
+}
+
+let heldNodes = [];
+
+function stopHeld() {
+  if (!audioCtx || heldNodes.length === 0) { heldNodes = []; return; }
+  heldNodes.forEach(({ osc, gain }) => {
+    try { gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.06); osc.stop(audioCtx.currentTime + 0.3); } catch(_) {}
+  });
+  heldNodes = [];
+}
+
+// ─────────────────────────────────────────────
+//  Audio buses
+// ─────────────────────────────────────────────
+let chordVolVal    = 0.75;
+let strumVolVal    = 0.75;
+let strumSustain   = 0.35;
+let strumReverbVal = 0.20;
+
+let chordBus = null, strumBus = null, reverbWet = null, reverbDry = null;
+
+function initBuses(ctx) {
+  if (chordBus) return;
+  chordBus  = ctx.createGain();
+  strumBus  = ctx.createGain();
+  reverbWet = ctx.createGain();
+  reverbDry = ctx.createGain();
+
+  const delay  = ctx.createDelay(2.0);
+  const fbGain = ctx.createGain();
+  delay.delayTime.value = 0.22;
+  fbGain.gain.value     = 0.45;
+
+  strumBus.connect(reverbDry);
+  strumBus.connect(reverbWet);
+  reverbWet.connect(delay);
+  delay.connect(fbGain);
+  fbGain.connect(delay);
+  delay.connect(ctx.destination);
+  reverbDry.connect(ctx.destination);
+  chordBus.connect(ctx.destination);
+  applyBusValues();
+}
+
+function applyBusValues() {
+  if (!chordBus) return;
+  const t = audioCtx.currentTime;
+  chordBus.gain.setTargetAtTime(chordVolVal, t, 0.02);
+  strumBus.gain.setTargetAtTime(strumVolVal, t, 0.02);
+  reverbWet.gain.setTargetAtTime(strumReverbVal, t, 0.02);
+  reverbDry.gain.setTargetAtTime(1 - strumReverbVal, t, 0.02);
+}
+
+function createOscNode(ctx, freq, type, detune, gainFn, bus) {
+  const osc  = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type            = type;
+  osc.frequency.value = Math.max(60, Math.min(freq, 5000));
+  osc.detune.value    = detune;
+  gainFn(gain.gain, ctx.currentTime);
+  osc.connect(gain);
+  gain.connect(bus ?? ctx.destination);
+  return { osc, gain };
+}
+
+// ─────────────────────────────────────────────
+//  Voice definitions
+// ─────────────────────────────────────────────
+let activeVoice = 'organ';
+
+const VOICES = {
+  organ(ctx, freqs) {
+    freqs.forEach((freq, i) => {
+      [1, 2, 3].forEach((harmonic) => {
+        const node = createOscNode(ctx, freq * harmonic, 'sine', i * 2,
+          (p, t) => { p.setValueAtTime(0, t); p.linearRampToValueAtTime(0.09 / freqs.length / harmonic, t + 0.01); }, chordBus);
+        node.osc.start(); heldNodes.push(node);
+      });
+    });
+  },
+  strings(ctx, freqs) {
+    freqs.forEach((freq, i) => {
+      [-8, -3, 0, 3, 8].forEach(det => {
+        const node = createOscNode(ctx, freq, 'sawtooth', det + i * 4,
+          (p, t) => { p.setValueAtTime(0, t); p.linearRampToValueAtTime(0.06 / freqs.length, t + 0.18); }, chordBus);
+        node.osc.start(); heldNodes.push(node);
+      });
+    });
+  },
+  choir(ctx, freqs) {
+    freqs.forEach((freq, i) => {
+      ['sine', 'sine', 'square'].forEach((type, ti) => {
+        const det = ti === 2 ? 0 : (ti === 0 ? -5 : 5);
+        const vol = ti === 2 ? 0.025 : 0.055;
+        const node = createOscNode(ctx, freq, type, det + i * 3,
+          (p, t) => { p.setValueAtTime(0, t); p.linearRampToValueAtTime(vol / freqs.length, t + 0.3); }, chordBus);
+        node.osc.start(); heldNodes.push(node);
+      });
+    });
+  },
+  flute(ctx, freqs) {
+    freqs.forEach((freq, i) => {
+      [[1, 0.1], [2, 0.03]].forEach(([mult, vol]) => {
+        const node = createOscNode(ctx, freq * mult, 'sine', i * 2,
+          (p, t) => { p.setValueAtTime(0, t); p.linearRampToValueAtTime(vol / freqs.length, t + 0.08); }, chordBus);
+        node.osc.start(); heldNodes.push(node);
+      });
+    });
+  },
+  brass(ctx, freqs) {
+    freqs.forEach((freq, i) => {
+      [-4, 0, 4].forEach(det => {
+        const node = createOscNode(ctx, freq, 'sawtooth', det + i * 5,
+          (p, t) => { p.setValueAtTime(0, t); p.linearRampToValueAtTime(0.14 / freqs.length, t + 0.04); p.linearRampToValueAtTime(0.09 / freqs.length, t + 0.12); }, chordBus);
+        node.osc.start(); heldNodes.push(node);
+      });
+    });
+  },
+  pad(ctx, freqs) {
+    freqs.forEach((freq, i) => {
+      [-12, -5, 0, 5, 12].forEach(det => {
+        const node = createOscNode(ctx, freq, 'triangle', det + i * 3,
+          (p, t) => { p.setValueAtTime(0, t); p.linearRampToValueAtTime(0.07 / freqs.length, t + 0.5); }, chordBus);
+        node.osc.start(); heldNodes.push(node);
+      });
+    });
+  },
+  bell(ctx, freqs) {
+    freqs.forEach((freq, i) => {
+      [[1, 0.12], [2.756, 0.07], [5.404, 0.04], [8.933, 0.02]].forEach(([ratio, vol]) => {
+        const node = createOscNode(ctx, freq * ratio, 'sine', i * 2,
+          (p, t) => { p.setValueAtTime(vol / freqs.length, t); p.setTargetAtTime(0, t + 0.02, 0.5); }, chordBus);
+        node.osc.start(); node.osc.stop(ctx.currentTime + 4); heldNodes.push(node);
+      });
+    });
+  },
+  pluck(ctx, freqs) {
+    freqs.forEach((freq, i) => {
+      [1, 2].forEach(mult => {
+        const node = createOscNode(ctx, freq * mult, 'triangle', (Math.random() - 0.5) * 6 + i * 3,
+          (p, t) => { p.setValueAtTime(0.13 / freqs.length / mult, t); p.setTargetAtTime(0, t + 0.01, 0.18); }, chordBus);
+        node.osc.start(); node.osc.stop(ctx.currentTime + 2); heldNodes.push(node);
+      });
+    });
+  },
+  bass(ctx, freqs) {
+    freqs.forEach((freq, i) => {
+      const f = freq / 2;
+      [['sawtooth', 0, 0.1], ['sine', 0, 0.06]].forEach(([type, det, vol]) => {
+        const node = createOscNode(ctx, f, type, det + i * 2,
+          (p, t) => { p.setValueAtTime(0, t); p.linearRampToValueAtTime(vol / freqs.length, t + 0.008); p.setTargetAtTime(vol * 0.6 / freqs.length, t + 0.05, 0.1); }, chordBus);
+        node.osc.start(); heldNodes.push(node);
+      });
+    });
+  },
+  lead(ctx, freqs) {
+    freqs.forEach((freq, i) => {
+      const node = createOscNode(ctx, freq * 2, 'square', i * 4,
+        (p, t) => { p.setValueAtTime(0, t); p.linearRampToValueAtTime(0.07 / freqs.length, t + 0.015); }, chordBus);
+      node.osc.start(); heldNodes.push(node);
+    });
+  },
+  crystal(ctx, freqs) {
+    freqs.forEach((freq, i) => {
+      [-6, 0, 6].forEach(det => {
+        const node = createOscNode(ctx, freq * 4, 'sine', det + i * 2,
+          (p, t) => { p.setValueAtTime(0, t); p.linearRampToValueAtTime(0.05 / freqs.length, t + 0.06); }, chordBus);
+        node.osc.start(); heldNodes.push(node);
+      });
+    });
+  },
+};
+
+function playChordSustained(freqs) {
+  stopHeld();
+  const ctx = getCtx();
+  (VOICES[activeVoice] ?? VOICES.organ)(ctx, freqs);
+}
+
+function strum(freqs, direction = 'down') {
+  stopHeld();
+  const ctx = getCtx();
+  const expanded = freqs.flatMap(f => [f / 2, f, f * 2]);
+  const bass     = freqs[0] / 4;
+  const ordered  = direction === 'down' ? [bass, ...expanded] : [bass, ...expanded].reverse();
+
+  ordered.forEach((freq, i) => {
+    const delay = i * 0.026;
+    const node  = createOscNode(ctx, freq, i < 2 ? 'sawtooth' : 'triangle', (Math.random() - 0.5) * 8,
+      (param, t) => {
+        param.setValueAtTime(0, t + delay);
+        param.linearRampToValueAtTime(0.08, t + delay + 0.012);
+        param.setTargetAtTime(0, t + delay + 0.08, 0.22);
+      }, strumBus);
+    node.osc.start(ctx.currentTime + delay);
+    node.osc.stop(ctx.currentTime + delay + 1.5);
+    heldNodes.push(node);
+  });
+
+  flashHarpStrings(direction);
+}
+
+// ─────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────
+let activeCol  = null;
+let activeRows = new Set();
+let heldRow    = null;
+const buttonMap = new Map();
+
+function getChordInfo(rows) {
+  const M = rows.has(CHORD_TYPES.MAJOR);
+  const m = rows.has(CHORD_TYPES.MINOR);
+  const S = rows.has(CHORD_TYPES.SEVENTH);
+  const D = rows.has(CHORD_TYPES.DIM);
+  const A = rows.has(CHORD_TYPES.AUG);
+  return CHORD_MAP.find(e => e.M === M && e.m === m && e.S === S && e.D === D && e.A === A) ?? null;
+}
+
+function getActiveFreqs() {
+  if (activeCol == null || activeRows.size === 0) return null;
+  const info = getChordInfo(activeRows);
+  if (!info) return null;
+  const root = ROOT_SEMI[COLS[activeCol].name];
+  return info.intervals.map(i => semiToFreq((root + i) % 12, 4 + Math.floor((root + i) / 12)));
+}
+
+function getChordDisplayName() {
+  if (activeCol == null || activeRows.size === 0) return null;
+  const info = getChordInfo(activeRows);
+  return info ? `${COLS[activeCol].name} ${info.label}` : null;
+}
+
+function clearActiveChord() {
+  activeRows.forEach(rt => buttonMap.get(`${rt}:${activeCol}`)?.classList.remove('active'));
+  activeRows.clear();
+  activeCol = null;
+  stopHeld();
+  updateHUD();
+  updateDisplay();
+}
+
+function toggleRow(rowType, col, combine = false) {
+  // If clicking the already-active single button, deselect it
+  if (col === activeCol && activeRows.has(rowType) && activeRows.size === 1) {
+    buttonMap.get(`${rowType}:${col}`)?.classList.remove('active');
+    activeRows.clear();
+    activeCol = null;
+    stopHeld();
+    updateHUD();
+    updateDisplay();
+    return;
+  }
+
+  // If combining (shift-click) on the same column, toggle the row in/out
+  if (combine && col === activeCol && activeRows.size > 0) {
+    if (activeRows.has(rowType)) {
+      // Removing a combined row
+      buttonMap.get(`${rowType}:${col}`)?.classList.remove('active');
+      activeRows.delete(rowType);
+      if (activeRows.size === 0) {
+        activeCol = null;
+        stopHeld();
+        updateHUD();
+        updateDisplay();
+        return;
+      }
+    } else {
+      activeRows.add(rowType);
+      buttonMap.get(`${rowType}:${col}`)?.classList.add('active');
+    }
+    const freqs = getActiveFreqs();
+    if (freqs) playChordSustained(freqs);
+    updateHUD();
+    updateDisplay();
+    return;
+  }
+
+  // Normal click — clear previous and set new
+  activeRows.forEach(rt => buttonMap.get(`${rt}:${activeCol}`)?.classList.remove('active'));
+  activeRows.clear();
+  activeCol = col;
+  activeRows.add(rowType);
+  buttonMap.get(`${rowType}:${col}`)?.classList.add('active');
+  playChordSustained(getActiveFreqs());
+  updateHUD();
+  updateDisplay();
+}
+
+function updateHUD() {
+  const hud  = document.getElementById('hud');
+  const name = getChordDisplayName();
+  hud.innerHTML = name
+    ? `Playing: <span class="chord-name">${name}</span> &nbsp;·&nbsp; Strum: <strong>Space / ↑↓</strong> &nbsp;·&nbsp; Shift-click rows to combine`
+    : `Select chord · Row: <strong>A</strong>=Maj &nbsp;<strong>S</strong>=Min &nbsp;<strong>D</strong>=7th · Col: <strong>1–=</strong> · Shift-click to combine rows`;
+}
+
+function updateDisplay() {
+  const name = getChordDisplayName();
+  document.getElementById('displayChord').textContent = name ?? '—';
+  document.getElementById('displayVoice').textContent = activeVoice;
+  document.getElementById('displayBpm').textContent = `${Math.round(getBeatBpm())} bpm`;
+}
+
+// ─────────────────────────────────────────────
+//  Build chord grid
+// ─────────────────────────────────────────────
+function buildGrid() {
+  const grid = document.getElementById('chordGrid');
+  ROWS.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = `te-chord-row ${row.cssClass}`;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'te-row-label';
+    lbl.textContent = row.label;
+    rowEl.appendChild(lbl);
+
+    COLS.forEach((col, ci) => {
+      const btn = document.createElement('div');
+      btn.className = 'te-chord-btn';
+      btn.title     = `${col.name} ${row.label}  [${row.key}+${col.key}]`;
+
+      const led = document.createElement('div');
+      led.className = 'te-btn-led';
+      btn.appendChild(led);
+
+      buttonMap.set(`${row.type}:${ci}`, btn);
+
+      btn.addEventListener('mousedown', e => {
+        e.preventDefault();
+        btn.classList.add('pressed');
+        setTimeout(() => btn.classList.remove('pressed'), 100);
+        toggleRow(row.type, ci, e.shiftKey);
+      });
+
+      rowEl.appendChild(btn);
+    });
+    grid.appendChild(rowEl);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Build harp strip
+// ─────────────────────────────────────────────
+const harpStringEls = [];
+let harpIndexDown = [];
+let harpIndexUp   = [];
+
+function buildHarp() {
+  const strip = document.getElementById('harpStrip');
+  for (let i = 0; i < 14; i++) {
+    const s = document.createElement('div');
+    s.className     = 'harp-string';
+    s.dataset.index = i;
+    s.addEventListener('mouseenter', () => { if (getActiveFreqs()) pluckString(i); });
+    strip.appendChild(s);
+    harpStringEls.push(s);
+  }
+  harpIndexDown = [...harpStringEls.keys()];
+  harpIndexUp   = harpIndexDown.slice().reverse();
+}
+
+function pluckString(index) {
+  const freqs = getActiveFreqs();
+  if (!freqs) return;
+  const octShift = Math.floor(index / freqs.length) - 1;
+  const freq     = freqs[index % freqs.length] * Math.pow(2, octShift);
+  const ctx      = getCtx();
+  const node     = createOscNode(ctx, freq, 'triangle', (Math.random() - 0.5) * 8,
+    (param, t) => {
+      param.setValueAtTime(0.14, t);
+      param.setTargetAtTime(0, t + 0.05, strumSustain);
+    }, strumBus);
+  node.osc.start();
+  node.osc.stop(ctx.currentTime + 1.2 + strumSustain * 4);
+  const el = harpStringEls[index];
+  if (el) { el.classList.add('plucked'); setTimeout(() => el.classList.remove('plucked'), 200); }
+}
+
+function flashHarpStrings(direction = 'down') {
+  const order = direction === 'down' ? harpIndexDown : harpIndexUp;
+  order.forEach((i, seq) => {
+    setTimeout(() => {
+      const el = harpStringEls[i];
+      if (el) { el.classList.add('plucked'); setTimeout(() => el.classList.remove('plucked'), 200); }
+    }, seq * 25);
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Keyboard
+// ─────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  const k = e.key.toLowerCase();
+
+  if (ROW_KEYS[k]) { heldRow = ROW_KEYS[k]; return; }
+  if (COL_KEYS[k] !== undefined) {
+    const rowType = heldRow ?? (activeRows.size === 1 ? [...activeRows][0] : null);
+    const col     = COL_KEYS[k];
+    if (rowType != null) toggleRow(rowType, col);
+    return;
+  }
+  if (k === ' ' || k === 'arrowdown') {
+    e.preventDefault();
+    const freqs = getActiveFreqs();
+    if (freqs) strum(freqs, 'down');
+    return;
+  }
+  if (k === 'arrowup') {
+    e.preventDefault();
+    const freqs = getActiveFreqs();
+    if (freqs) strum(freqs, 'up');
+    return;
+  }
+  if (k === 'escape') { clearActiveChord(); }
+});
+
+document.addEventListener('keyup', e => {
+  if (ROW_KEYS[e.key.toLowerCase()]) heldRow = null;
+});
+
+// Voice selector
+document.getElementById('voiceBtns').addEventListener('click', e => {
+  const btn = e.target.closest('.voice-btn');
+  if (!btn) return;
+  document.querySelectorAll('#voiceBtns .voice-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeVoice = btn.dataset.voice;
+  const freqs = getActiveFreqs();
+  if (freqs) playChordSustained(freqs);
+  updateDisplay();
+});
+
+// ─────────────────────────────────────────────
+//  Strum buttons
+// ─────────────────────────────────────────────
+document.getElementById('strumDownBtn').addEventListener('click', () => {
+  const freqs = getActiveFreqs();
+  if (freqs) strum(freqs, 'down');
+});
+document.getElementById('strumUpBtn').addEventListener('click', () => {
+  const freqs = getActiveFreqs();
+  if (freqs) strum(freqs, 'up');
+});
+
+// ─────────────────────────────────────────────
+//  Knob drag
+// ─────────────────────────────────────────────
+{
+  const KNOB_MAP = {
+    chordVol:  { get: () => chordVolVal,    set: v => { chordVolVal   = v; applyBusValues(); }, init: 0.75 },
+    strumVol:  { get: () => strumVolVal,    set: v => { strumVolVal   = v; applyBusValues(); }, init: 0.75 },
+    beatVol:   { get: () => beatVolVal,     set: v => { beatVolVal   = v; }, init: 0.7 },
+    beatTempo: { get: () => beatTempoVal,   set: v => { beatTempoVal = v; updateDisplay(); }, init: 0.45 },
+  };
+
+  const MIN_DEG = -135, MAX_DEG = 135;
+  function valToDeg(v) { return MIN_DEG + v * (MAX_DEG - MIN_DEG); }
+
+  document.querySelectorAll('.te-knob[data-knob]').forEach(knob => {
+    const key = knob.dataset.knob;
+    if (!KNOB_MAP[key]) return;
+    knob.style.transform = `rotate(${valToDeg(KNOB_MAP[key].init)}deg)`;
+  });
+
+  let activeKnob = null, knobStartY = 0, knobStartVal = 0;
+
+  document.querySelectorAll('.te-knob[data-knob]').forEach(knob => {
+    knob.addEventListener('pointerdown', e => {
+      const key = knob.dataset.knob;
+      if (!KNOB_MAP[key]) return;
+      e.preventDefault();
+      knob.setPointerCapture(e.pointerId);
+      activeKnob   = { knob, ...KNOB_MAP[key] };
+      knobStartY   = e.clientY;
+      knobStartVal = KNOB_MAP[key].get();
+    });
+    knob.addEventListener('pointermove', e => {
+      if (!activeKnob || activeKnob.knob !== knob) return;
+      const delta = (knobStartY - e.clientY) / 120;
+      const value = Math.max(0, Math.min(1, knobStartVal + delta));
+      activeKnob.set(value);
+      knob.style.transform = `rotate(${valToDeg(value)}deg)`;
+    });
+    knob.addEventListener('pointerup',     () => { activeKnob = null; });
+    knob.addEventListener('pointercancel', () => { activeKnob = null; });
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Beats engine
+// ─────────────────────────────────────────────
+const BEAT_PATTERNS = [
+  { bass:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], snare:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0] },
+  { bass:[1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0], snare:[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0] },
+  { bass:[1,0,0,1,0,0,1,0,1,0,0,0,0,1,0,0], snare:[0,0,0,0,1,0,0,1,0,0,0,0,1,0,0,0] },
+  { bass:[1,0,1,0,0,1,0,0,1,0,0,1,0,0,1,0], snare:[0,0,0,0,1,0,1,0,0,0,0,0,1,0,0,1] },
+  { bass:[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0], snare:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,1,0] },
+  { bass:[1,0,0,1,0,0,0,0,0,1,0,0,1,0,0,0], snare:[0,0,1,0,0,1,0,0,1,0,0,0,0,0,1,0] },
+];
+
+let beatPlaying    = false;
+let beatStep       = 0;
+let beatPatternIdx = 0;
+let beatVolVal     = 0.7;
+let beatTempoVal   = 0.45;
+let beatTimerId    = null;
+
+const BEAT_LED_COUNT = 16;
+const beatLedEls = [];
+
+function buildBeatLeds() {
+  const wrap = document.getElementById('beatLeds');
+  for (let i = 0; i < BEAT_LED_COUNT; i++) {
+    const el = document.createElement('div');
+    el.className = 'display-led';
+    wrap.appendChild(el);
+    beatLedEls.push(el);
+  }
+}
+
+function getBeatBpm() { return 60 + beatTempoVal * 120; }
+function beatStepInterval() { return (60000 / getBeatBpm()) / 4; }
+
+function triggerBass(ctx, vol) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(120, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.12);
+  gain.gain.setValueAtTime(vol * 0.9, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(); osc.stop(ctx.currentTime + 0.28);
+}
+
+function triggerSnare(ctx, vol) {
+  const bufSize = ctx.sampleRate * 0.15;
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
+  const noise = ctx.createBufferSource();
+  const filter = ctx.createBiquadFilter();
+  const nGain = ctx.createGain();
+  noise.buffer = buf;
+  filter.type = 'highpass'; filter.frequency.value = 1800;
+  nGain.gain.setValueAtTime(vol * 0.5, ctx.currentTime);
+  nGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.14);
+  noise.connect(filter); filter.connect(nGain); nGain.connect(ctx.destination);
+  noise.start(); noise.stop(ctx.currentTime + 0.16);
+  const osc = ctx.createOscillator();
+  const bGain = ctx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(200, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.06);
+  bGain.gain.setValueAtTime(vol * 0.4, ctx.currentTime);
+  bGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.10);
+  osc.connect(bGain); bGain.connect(ctx.destination);
+  osc.start(); osc.stop(ctx.currentTime + 0.12);
+}
+
+function beatTick() {
+  if (!beatPlaying) return;
+  const pat = BEAT_PATTERNS[beatPatternIdx];
+  const ctx = getCtx();
+  beatLedEls.forEach((el, i) => {
+    el.classList.remove('on-bass', 'on-snare');
+    if (i === beatStep) {
+      if (pat.bass[i])  el.classList.add('on-bass');
+      if (pat.snare[i]) el.classList.add('on-snare');
+    }
+  });
+  if (pat.bass[beatStep])  triggerBass(ctx, beatVolVal);
+  if (pat.snare[beatStep]) triggerSnare(ctx, beatVolVal);
+  beatStep = (beatStep + 1) % BEAT_LED_COUNT;
+  beatTimerId = setTimeout(beatTick, beatStepInterval());
+}
+
+function startBeat() {
+  if (beatPlaying) return;
+  beatPlaying = true;
+  beatStep = 0;
+  document.getElementById('beatPlayBtn').classList.add('playing');
+  beatTick();
+}
+
+function stopBeat() {
+  beatPlaying = false;
+  clearTimeout(beatTimerId);
+  beatTimerId = null;
+  beatLedEls.forEach(el => el.classList.remove('on-bass', 'on-snare'));
+  document.getElementById('beatPlayBtn').classList.remove('playing');
+}
+
+document.getElementById('beatBtns').addEventListener('click', e => {
+  const btn = e.target.closest('.beat-btn');
+  if (!btn) return;
+  document.querySelectorAll('#beatBtns .beat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  beatPatternIdx = parseInt(btn.dataset.beat, 10);
+  if (beatPlaying) { stopBeat(); startBeat(); }
+});
+
+document.getElementById('beatPlayBtn').addEventListener('click', () => {
+  if (beatPlaying) stopBeat(); else startBeat();
+});
+
+// ─────────────────────────────────────────────
+//  Power button
+// ─────────────────────────────────────────────
+const deviceEl = document.getElementById('teDevice');
+const powerBtnEl = document.getElementById('powerBtn');
+let lightsOn = true;
+
+powerBtnEl.addEventListener('click', () => {
+  lightsOn = !lightsOn;
+  deviceEl.classList.toggle('lights-off', !lightsOn);
+  if (!lightsOn) {
+    stopHeld();
+    if (beatPlaying) stopBeat();
+    clearActiveChord();
+    if (audioCtx) audioCtx.suspend();
+  } else {
+    if (audioCtx) audioCtx.resume();
+  }
+});
+
+// ─────────────────────────────────────────────
+//  Init
+// ─────────────────────────────────────────────
+buildGrid();
+buildHarp();
+buildBeatLeds();
+updateHUD();
+updateDisplay();
+
+document.addEventListener('mousedown', () => getCtx(), { once: true });
+document.addEventListener('keydown',   () => getCtx(), { once: true });
+</script>
+</body>
+</html>
